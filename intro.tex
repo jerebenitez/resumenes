@@ -29,3 +29,62 @@ Un sistema concurrente está basado en un sistema de transición de estado, que 
   \item Las aristas son las transiciones \textbf{atómicas} entre estados
   \item Hay un nodo distinguido, que se reconoce como el estado inicial del sistema
 \end{itemize}
+
+La \textbf{relación de transición de un sistema} me indica cómo son las transiciones de estado, según los eventos que me lleguen.
+
+La \textbf{traza del sistema} es la secuencia de estados para una ejecución particular. Como los procesos concurrentes se ejecutan intercalando acciones atómicas, la traza de estos va a presentar interleaving la cual va a ser no determinista. Muchos interleavings me pueden llevar a los mismos estados globales.
+
+Para un programa ``real'', el conjunto de estados está dado por la combinación de los valores de todas las variables globales, así como el valor de unas variables implícitas: el program counter de cada uno de los procesos.
+
+\subsection{Proceso}
+Es una ``unidad de actividad'' (un trozo de un programa) que se caracteriza por la ejecución de una secuencia de instrucciones, un estado actual, y un conjunto de recursos del sistema asociados.
+
+Tiene 5 estados:
+\begin{enumerate}
+  \item Nonato
+  \item Activo
+  \item Preparado
+  \item Bloqueado. Es este estado puede también estar suspendido, que es cuando el SO lo baja al disco para liberar memoria para otros procesos que puedan ejecutar alguna tarea. En este caso, podremos tener 2 estados más:
+    \begin{enumerate}
+      \item Bloqueado: todavía no sucede el evento que está esperando
+      \item Preparado: el evento ya sucedió, y está listo para volver a ser cargado en memoria a espera de tiempo de CPU
+    \end{enumerate}
+  \item Muerto
+\end{enumerate}
+
+El control de procesos se hace a través de un registro llamado BCP, donde se tiene toda la información necesaria para esto. Dicha información está compuesta por:
+\begin{itemize}
+  \item PID
+  \item Estado (ver arriba)
+  \item Contador de programa
+  \item Valores de registro de CPU, para los cambios de contexto
+  \item Espacio de direcciones de memoria
+  \item Prioridad para la planificación
+  \item Lista de recursos asignados (fds, sockets)
+  \item Estadísticas del proceso para manejo del SO
+  \item Datos del propietario
+  \item Permisos asignados
+  \item Señales pendientes de ser servidas
+\end{itemize}
+
+\subsection{Hilos}
+\begin{itemize}
+  \item Surgen porque es más ``barato'' cambiar de hilo que de proceso.
+  \item Cada hilo tiene un PC, una pila de ejecución y el estado de la CPU. 
+  \item Comparten espacios de direcciones y datos.
+  \item El proceso sigue en ejecución mientras al menos uno de sus hilos siga activo.
+\end{itemize}
+
+Tienen los siguientes estados:
+\begin{enumerate}
+  \item Creación
+  \item Bloqueo
+  \item Desbloqueo
+  \item Temrinación
+  \item Waiting
+  \item Sleeping
+\end{enumerate}
+
+El pasaje entre estados, y la finalidad de cada uno, es análogo al de los procesos.
+
+Es mucho más rápida la creación, la destrucción, y la conmutación de hilos. Además, la comunicación entre hilos no necesita llamar al núcleo.
