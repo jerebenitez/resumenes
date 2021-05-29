@@ -1,0 +1,31 @@
+\begin{itemize}
+  \item Se trabaja con sistemas críticos y reactivos, esto implica que si fallan, ponen en riesgo la vida de las personas, y que están reaccionando a \textbf{eventos del entorno}
+  \item Se elije modelar para poder usar herramientas matemáticas que permitan corroborar la correctitud del modelo en cuestión
+  \begin{itemize}
+    \item Porque el testing no es suficiente
+    \item El testing puede confirmar la presencia de errores, pero no garantizar su ausencia
+    \item Automatización tampoco es posible por la explosión de estados
+  \end{itemize}
+  \item Se usan redes de petri porque tienen bastante expresividad: muestran estados globales, y los locales de cada una de las partes
+\end{itemize}
+
+El problema de los programas concurrentes es que tenemos más de un proceso, hilo o componente que interactúan entre sí, para lograr un objetivo en común. Por el no determinismo de los planificadores de los SOs, es imposible conocer el orden en el que se van a ejecutar las trazas de c/parte.
+
+Como se encuentran accediendo a recursos compartidos, hay que garantizar que las cosas se realicen en cierto orden, para que el objetivo global del programa pueda cumplirse.
+
+Por esto, aparecen ciertos problemas:
+\begin{itemize}
+  \item \textbf{Violación de propiedades universales}: Valores que deberían permanecer constantes, o en un intervalo determinado, pueden variar fuera de sus valores permitidos según el orden en que sean leídos y escritos.
+  \item \textbf{Starvation}: Una parte se queda esperando indefinidamente que suceda algo, y no ejecuta nada
+  \item \textbf{Deadlock}: dos o más procesos quedan esperando mutuamente el avance del otro. Si yo tengo un archivo y quiero abrir otro, pero otro proceso tiene ese archivo y está esperando que yo libere el mío, los dos nos vamos a bloquear
+  \item \textbf{Problemas de uso no exclusivo}: corrupción de un recurso. Es similar al primero, pero no necesariamente tiene que haber una invariante que sea violada
+  \item \textbf{Livelock}: es similar al deadlock, pero en vez de quedarse esperando indefinidamente, los dos liberan el recurso que tienen y lo vuelven a tomar cuando el otro proceso hace lo mismo, quedando "trabados" en una sección del programa
+\end{itemize}
+
+\subsection{Semántica de los programas concurrentes}
+Un sistema concurrente está basado en un sistema de transición de estado, que es un grafo dirigido en el cual:
+\begin{itemize}
+  \item Los nodos son los estados del sistema
+  \item Las aristas son las transiciones \textbf{atómicas} entre estados
+  \item Hay un nodo distinguido, que se reconoce como el estado inicial del sistema
+\end{itemize}
