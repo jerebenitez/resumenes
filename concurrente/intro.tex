@@ -1,90 +1,66 @@
-\begin{itemize}
-  \item Se trabaja con sistemas críticos y reactivos, esto implica que si fallan, ponen en riesgo la vida de las personas, y que están reaccionando a \textbf{eventos del entorno}
-  \item Se elije modelar para poder usar herramientas matemáticas que permitan corroborar la correctitud del modelo en cuestión
-  \begin{itemize}
-    \item Porque el testing no es suficiente
-    \item El testing puede confirmar la presencia de errores, pero no garantizar su ausencia
-    \item Automatización tampoco es posible por la explosión de estados
-  \end{itemize}
-  \item Se usan redes de petri porque tienen bastante expresividad: muestran estados globales, y los locales de cada una de las partes
-\end{itemize}
+\section{Corrección del software}
+La motivación para esta materia surge de la dificultad que presentan los programas concurrentes a la hora de intentar determinar su correctitud. En particual nos concentramos en los programas que responden a sistemas críticos (esto es, sistemas cuyas fallas pueden causar daños de gran importancia, incluyendo pérdidas de vidas humanas, catástrofes ecológicas, grandes pérdidas económicas, etc.) y reactivos (sistemas que responden a eventos de su entorno).
 
-El problema de los programas concurrentes es que tenemos más de un proceso, hilo o componente que interactúan entre sí, para lograr un objetivo en común. Por el no determinismo de los planificadores de los SOs, es imposible conocer el orden en el que se van a ejecutar las trazas de c/parte.
-
-Como se encuentran accediendo a recursos compartidos, hay que garantizar que las cosas se realicen en cierto orden, para que el objetivo global del programa pueda cumplirse.
-
-Por esto, aparecen ciertos problemas:
-\begin{itemize}
-  \item \textbf{Violación de propiedades universales}: Valores que deberían permanecer constantes, o en un intervalo determinado, pueden variar fuera de sus valores permitidos según el orden en que sean leídos y escritos.
-  \item \textbf{Starvation}: Una parte se queda esperando indefinidamente que suceda algo, y no ejecuta nada
-  \item \textbf{Deadlock}: dos o más procesos quedan esperando mutuamente el avance del otro. Si yo tengo un archivo y quiero abrir otro, pero otro proceso tiene ese archivo y está esperando que yo libere el mío, los dos nos vamos a bloquear
-  \item \textbf{Problemas de uso no exclusivo}: corrupción de un recurso. Es similar al primero, pero no necesariamente tiene que haber una invariante que sea violada
-  \item \textbf{Livelock}: es similar al deadlock, pero en vez de quedarse esperando indefinidamente, los dos liberan el recurso que tienen y lo vuelven a tomar cuando el otro proceso hace lo mismo, quedando "trabados" en una sección del programa
-\end{itemize}
-
-\subsection{Semántica de los programas concurrentes}
-Un sistema concurrente está basado en un sistema de transición de estado, que es un grafo dirigido en el cual:
-\begin{itemize}
-  \item Los nodos son los estados del sistema
-  \item Las aristas son las transiciones \textbf{atómicas} entre estados
-  \item Hay un nodo distinguido, que se reconoce como el estado inicial del sistema
-\end{itemize}
-
-La \textbf{relación de transición de un sistema} me indica cómo son las transiciones de estado, según los eventos que me lleguen.
-
-La \textbf{traza del sistema} es la secuencia de estados para una ejecución particular. Como los procesos concurrentes se ejecutan intercalando acciones atómicas, la traza de estos va a presentar interleaving la cual va a ser no determinista. Muchos interleavings me pueden llevar a los mismos estados globales.
-
-Para un programa ``real'', el conjunto de estados está dado por la combinación de los valores de todas las variables globales, así como el valor de unas variables implícitas: el program counter de cada uno de los procesos.
-
-\subsection{Proceso}
-Es una ``unidad de actividad'' (un trozo de un programa) que se caracteriza por la ejecución de una secuencia de instrucciones, un estado actual, y un conjunto de recursos del sistema asociados.
-
-Tiene 5 estados:
+Más en detalle, los sistemas reactivos presentan características diferentes respecto a los transformacionales\footnote{Programas que toman una entrada del entorno, le aplican una transformación, y devuelven el resultado.}, las dos principales a nombrar son:
 \begin{enumerate}
-  \item Nonato
-  \item Activo
-  \item Preparado
-  \item Bloqueado. Es este estado puede también estar suspendido, que es cuando el SO lo baja al disco para liberar memoria para otros procesos que puedan ejecutar alguna tarea. En este caso, podremos tener 2 estados más:
-    \begin{enumerate}
-      \item Bloqueado: todavía no sucede el evento que está esperando
-      \item Preparado: el evento ya sucedió, y está listo para volver a ser cargado en memoria a espera de tiempo de CPU
-    \end{enumerate}
-  \item Muerto
+  \item No es posible determinar exactamente cuándo llegaran los eventos desde el entorno (son asincrónicos)
+  \item No necesariamente computan resultados
+  \item No suele requerirse que terminene (como en es caso para los sistemas operativos, por ejemplo)
 \end{enumerate}
 
-El control de procesos se hace a través de un registro llamado BCP, donde se tiene toda la información necesaria para esto. Dicha información está compuesta por:
-\begin{itemize}
-  \item PID
-  \item Estado (ver arriba)
-  \item Contador de programa
-  \item Valores de registro de CPU, para los cambios de contexto
-  \item Espacio de direcciones de memoria
-  \item Prioridad para la planificación
-  \item Lista de recursos asignados (fds, sockets)
-  \item Estadísticas del proceso para manejo del SO
-  \item Datos del propietario
-  \item Permisos asignados
-  \item Señales pendientes de ser servidas
-\end{itemize}
+Una primera estrategia ante este problema, podría ser la del testing. Sin embargo, esta estrategia presenta un problema claro: el testing es capaz de detectar la presencia de errores en el código, pero no la ausencia de los mismos. Además, como se verá más adelante, el espacio de estados\footnote{El espacio de estados de un sistema está formado por el conjunto de valores posibles para todas las variables del sistema, más los program counter de los procesos/hilos involucrados.} de estos sistemas crece exponencialmente con la cantidad de variables, por lo que pensar en poder lograr una cobertura suficiente con tests se vuelve irreal.
 
-\subsection{Hilos}
-\begin{itemize}
-  \item Surgen porque es más ``barato'' cambiar de hilo que de proceso.
-  \item Cada hilo tiene un PC, una pila de ejecución y el estado de la CPU. 
-  \item Comparten espacios de direcciones y datos.
-  \item El proceso sigue en ejecución mientras al menos uno de sus hilos siga activo.
-\end{itemize}
+Este último punto nos permite descartar la segunda estrategia posible: la de la simulación. Dado que el espacio de estados crece de esta manera, pudiendo ser incluso infinito, la simulación puede no detectar problemas en el software.
 
-Tienen los siguientes estados:
+La tercer estrategia posible es la de la verificación semi-automática de software. Esta presenta serias limitaciones: desde la teoría sabemos que, por ejemplo, decidir si un problema termina o no no es computable\footnote{\url{https://en.wikipedia.org/wiki/Halting_problem}}. Si imponemos algunas restricciones sobre las propiedades que queremos verificar, sin embargo, hay algunas tareas que pueden verificarse automáticamente\footnote{\url{https://en.wikipedia.org/wiki/Model_checking}}\footnote{\url{https://en.wikipedia.org/wiki/Static_program_analysis}}\footnote{\url{https://en.wikipedia.org/wiki/Dynamic_program_analysis}}.
+
+Por los problemas expuestos anteriormente es que se propone el enfoque de modelar: utilizar modelos matemáticos con la expresividad suficiente para poder representar los sistemas que podamos llegar a querer implementar, y que permitan aplicar herramientas matemáticas para determinar las propiedades del sistema. Se adelanta que el modelo elegido en esta materia son las redes de Petri.
+
+\section{El enfoque de modelar}
+Se presentan dos modelos: las máquinas de estado finitas y las redes de Petri.
+
+Si bien tienen menor expresividad, las primeras son más familiares para los programadores e ingenieros, tienen una semántica intuitiva, son fáciles de entender, y tienen una representación gráfica sencilla.
+
+Es este punto, su representación gráfica, lo que las limita, ya que puede no ser práctico (o del todo posible) representar el espacio de estados de un sistema con ellas. Por esto se prefieren las redes de Petri.
+
+\section{Programas concurrentes}
+Los programas concurrentes están compuestos por componentes (procesos o hilos) que necesitan interactuar para, en general, llegar a un objetivo común.
+
+Estos componentes concurrentes se ejecutan intercalando sus acciones atómicas\footnote{Atómicas se refiere a indivisible. Esto es, son operaciones que se ejecutan en su totalidad, o no se ejecutan, pero no pueden ser interrumpidas mientras lo están haciendo.} (esto se conoce como \textit{interleaving}). Esta intercalación queda en manos del scheduler, quien decide a qué hilo o proceso le toca tomar el CPU para ejecutarse. Estos schedulers son en general no deterministas, por lo que no se puede decidir el interleaving resultante de la ejecución de un programa, y un mismo par de procesos pueden tener ejecuciones diferentes.
+
+La concurrencia puede presentarse en tres contextos:
 \begin{enumerate}
-  \item Creación
-  \item Bloqueo
-  \item Desbloqueo
-  \item Temrinación
-  \item Waiting
-  \item Sleeping
+  \item Múltiples aplicaciones, esto es, poder correr múltiples aplicaciones ``simultaneamente'' en un mismo core.
+  \item Aplicaciones estructuradas, lo cual implica aplicar una estrategia \textit{divide \& conquer} en un mismo programa para implementar soluciones eficazmente.
+  \item Estructura del sistema operativo, lo cual es simplemente aprovechar los beneficiones del contexto anterior, a nivel sistema.
 \end{enumerate}
 
-El pasaje entre estados, y la finalidad de cada uno, es análogo al de los procesos.
+La misma comprende un gran número de cuestiones de diseño:
+\begin{itemize}
+  \item La comunicación entre procesos
+  \item Compartición de y competencia por recursos
+  \item Sincronización de la ejecución de varios procesos
+  \item Asignación del tiempo a cada hilo o proceso
+\end{itemize}
 
-Es mucho más rápida la creación, la destrucción, y la conmutación de hilos. Además, la comunicación entre hilos no necesita llamar al núcleo.
+En general es muy difícil razonar sobre programas concurrentes debido a los diferentes interleavings que se pueden presentar: no siempre es claro cuáles son posibles de encontrar y cuales no a simple vista.
+
+\subsection{Problemas comunes de los programas concurrentes}
+Esta ejecución concurrente nos puede presentar ciertos problemas si no se toman las medidas adecuadas:
+\begin{enumerate}
+  \item  \textbf{Violación de propiedades universales}: por ejemplo, si tenemos una variable cuyos valores deben estar acotados, una mala programación concurrente puede llevar a que existan trazas de ejecución donde dichas cotas son sobrepasadas
+  \item  \textbf{Starvation}: ocurre cuando uno o más procesos se quedan esperando indefinidamente un mensaje o evento. 
+  \item  \textbf{Deadlock}: dos o más procesos se quedan esperando el avance del otro. Por ejemplo, tenemos dos procesos (A y B) que necesitan abrir los mismos dos archivos (input.txt y output.txt). El proceso A toma el archivo input.txt, y es interrumpido por el procesador, quien le da la CPU al proceso B. Este toma el archivo output.txt. Independientemente de si se siga ejecutando el proceso B o se le de la CPU al proceso A, ambos se van a bloquear esperando que se libere el archivo que les faltó tomar, lo cual nunca va a pasar.
+  \item  \textbf{Uso no exclusivo de recursos compartidos}: es una generalización del primer problema, ya que puede que no exista una invariante, pero que el acceso incorrecto a una variable o un archivo afecten el funcionamiento del programa, o corrompan el valor almacenado.
+  \item  \textbf{Livelock}: es similar al caso del deadlock, pero en esta situación los procesos al detectar que el otro recurso está tomado, liberan el suyo propio. Ambos realizan la misma acción, los dos recursos quedan disponibles, y los procesos vuelven a tomarlos y bloquearse mutuamente. La diferencia en este caso radica en que los procesos no están bloqueados, pero no están ``avanzando''.
+\end{enumerate}
+
+\section{Procesos}
+Formalmente, un proceso es \textit{``una unidad de actividad que se acaracteriza por la ejecución de una secuencia de intrucciones, un estado actual, y un conjunto de recursos del sistema asociados.''} Más prácticamente, es un programa (o parte de uno) en ejecución. En general se dividen programas en procesos para aprovechar los ``tiempos muetros.'' Esto es, si tengo que escribir algo a un archivo en el disco, puedo aprovechar el tiempo que se va a demorar dicha acción y seguir computando cosas en otro proceso, en vez de bloquear todo el programa hasta que la escritura esté lista.
+
+Los servicios necesarios para la ejecución de y la comunicación\footnote{Se nombra la comunicación acá para remarcar el hecho de que toda comunicación entre procesos debe pasar por el kernel. Más adelante se verá que este es uno de los motivos por los cuales los hilos son ``más livianos.''} entre procesos. Al comienzo de la ejecución del programa, se inicia la ejecución de un proceso, el cual podrá a su vez generar \textit{procesos hijos}.
+
+A su vez, estos pueden clasificarse según su sincronización desde sincronización fina (los procesos interactual fuertemente, intercambiando mensajes cada un número reducido de operaciones), hasta procesos completamente independientes.
+
+\section{Hilos}
+
