@@ -1,14 +1,14 @@
 \section{Corrección del software}
-La motivación para esta materia surge de la dificultad que presentan los programas concurrentes a la hora de intentar determinar su correctitud. En particual nos concentramos en los programas que responden a sistemas críticos (esto es, sistemas cuyas fallas pueden causar daños de gran importancia, incluyendo pérdidas de vidas humanas, catástrofes ecológicas, grandes pérdidas económicas, etc.) y reactivos (sistemas que responden a eventos de su entorno).
+La motivación para esta materia surge de la dificultad que presentan los programas concurrentes a la hora de intentar determinar su correctitud. En particular nos concentramos en los programas que responden a sistemas críticos (esto es, sistemas cuyas fallas pueden causar daños de gran importancia, incluyendo pérdidas de vidas humanas, catástrofes ecológicas, grandes pérdidas económicas, etc.) y reactivos (sistemas que responden a eventos de su entorno).
 
-Más en detalle, los sistemas reactivos presentan características diferentes respecto a los transformacionales\footnote{Programas que toman una entrada del entorno, le aplican una transformación, y devuelven el resultado.}, las dos principales a nombrar son:
+Más en detalle, los sistemas reactivos presentan características diferentes respecto a los transformacionales\footnote{Programas que toman una entrada del entorno, le aplican una transformación, y devuelven el resultado.}, las tres principales a nombrar son:
 \begin{enumerate}
   \item No es posible determinar exactamente cuándo llegaran los eventos desde el entorno (son asincrónicos)
   \item No necesariamente computan resultados
-  \item No suele requerirse que terminene (como en es caso para los sistemas operativos, por ejemplo)
+  \item No suele requerirse que terminen (como es caso para los sistemas operativos, por ejemplo)
 \end{enumerate}
 
-Una primera estrategia ante este problema, podría ser la del testing. Sin embargo, esta estrategia presenta un problema claro: el testing es capaz de detectar la presencia de errores en el código, pero no la ausencia de los mismos. Además, como se verá más adelante, el espacio de estados\footnote{El espacio de estados de un sistema está formado por el conjunto de valores posibles para todas las variables del sistema, más los program counter de los procesos/hilos involucrados.} de estos sistemas crece exponencialmente con la cantidad de variables, por lo que pensar en poder lograr una cobertura suficiente con tests se vuelve irreal.
+Una primera estrategia ante este problema, podría ser la del testing. Sin embargo, esta estrategia presenta un problema claro: \textbf{el testing es capaz de detectar la presencia de errores en el código, pero no la ausencia de los mismos.} Además, como se verá más adelante, el espacio de estados\footnote{El espacio de estados de un sistema está formado por el conjunto de valores posibles para todas las variables del sistema, más los program counter de los procesos/hilos involucrados.} de estos sistemas crece exponencialmente con la cantidad de variables, por lo que pensar en poder lograr una cobertura suficiente con tests se vuelve irreal.
 
 Este último punto nos permite descartar la segunda estrategia posible: la de la simulación. Dado que el espacio de estados crece de esta manera, pudiendo ser incluso infinito, la simulación puede no detectar problemas en el software.
 
@@ -56,11 +56,49 @@ Esta ejecución concurrente nos puede presentar ciertos problemas si no se toman
 \end{enumerate}
 
 \section{Procesos}
-Formalmente, un proceso es \textit{``una unidad de actividad que se acaracteriza por la ejecución de una secuencia de intrucciones, un estado actual, y un conjunto de recursos del sistema asociados.''} Más prácticamente, es un programa (o parte de uno) en ejecución. En general se dividen programas en procesos para aprovechar los ``tiempos muetros.'' Esto es, si tengo que escribir algo a un archivo en el disco, puedo aprovechar el tiempo que se va a demorar dicha acción y seguir computando cosas en otro proceso, en vez de bloquear todo el programa hasta que la escritura esté lista.
+Formalmente, un proceso es \textit{``una unidad de actividad que se caracteriza por la ejecución de una secuencia de intrucciones, un estado actual, y un conjunto de recursos del sistema asociados.''} Más prácticamente, es un programa (o parte de uno) en ejecución. En general se dividen programas en procesos para aprovechar los ``tiempos muetros.'' Esto es, si tengo que escribir algo a un archivo en el disco, puedo aprovechar el tiempo que se va a demorar dicha acción y seguir computando cosas en otro proceso, en vez de bloquear todo el programa hasta que la escritura esté lista.
 
-Los servicios necesarios para la ejecución de y la comunicación\footnote{Se nombra la comunicación acá para remarcar el hecho de que toda comunicación entre procesos debe pasar por el kernel. Más adelante se verá que este es uno de los motivos por los cuales los hilos son ``más livianos.''} entre procesos. Al comienzo de la ejecución del programa, se inicia la ejecución de un proceso, el cual podrá a su vez generar \textit{procesos hijos}.
+Los servicios necesarios para la ejecución de y la comunicación\footnote{Se nombra la comunicación acá para remarcar el hecho de que toda comunicación entre procesos debe pasar por el kernel. Más adelante se verá que este es uno de los motivos por los cuales los hilos son ``más livianos.''} entre procesos quedan a cargo del sistema operativo. Al comienzo de la ejecución del programa, se inicia la ejecución de un proceso, el cual podrá a su vez generar \textit{procesos hijos}.
 
-A su vez, estos pueden clasificarse según su sincronización desde sincronización fina (los procesos interactual fuertemente, intercambiando mensajes cada un número reducido de operaciones), hasta procesos completamente independientes.
+A su vez, estos pueden clasificarse según su sincronización desde sincronización fina (los procesos interactuan fuertemente, intercambiando mensajes cada un número reducido de operaciones), hasta procesos completamente independientes.
+
+\subsection{Estados de los procesos}
+El modelo de estados de los procesos depende del sistema operativo en cuestión (tanto del SO, como de la versión del mismo), pero en general, se puede resumir en 7 estados:
+\begin{enumerate}
+  \item \textbf{Creado}: ya existe en memoria, y las estructuras ya están listas, pero todavía no es reconocido por el sistema operativo.
+  \item \textbf{En ejecución}: tiene el procesador actualmente
+  \item \textbf{Esperando}: está listo para ejecutarse cuando le toque tiempo de procesador
+  \item \textbf{Muerto}: por algún motivo terminó (o fue terminado), pero todavía no se liberan de la memoria sus estructuras
+  \item \textbf{Bloqueado}: está a la espera de algún evento o señal de sinronización
+  \item \textbf{Suspendido bloqueado}
+  \item \textbf{Suspendido listo}
+\end{enumerate}
+
+Los últimos dos estados representan lo mismo que sus contrapartes no suspendidas, con la diferencia de que un proceso fue sacado de memoria y pasado al disco. Esto se hace generalmente para librerar memoria y evitar que el procesador quede oscioso.
+
+\subsection{Control de procesos}
+El control de los procesos por parte del sistema operativo se realiza mediante una estructura conocida como BCP (bloque de control de proceso) donde se tiene, entre otras cosas:
+\begin{itemize}
+  \item \textbf{Identificador} (PID)
+  \item \textbf{Estado}
+  \item \textbf{Contador de programa}
+  \item \textbf{Valores de registros de la CPU} (para el cambio de contexto)
+  \item \textbf{Espacio de direcciones de memoria}
+  \item \textbf{Prioridad} (de ser utilizada por el algoritmo de planificación)
+  \item \textbf{Lista de recursos y permisos asignados} (fds y sockets abiertos)
+  \item \textbf{Estadísticas}
+  \item \textbf{Datos del owner}
+  \item \textbf{Signals pendientes}
+\end{itemize}
 
 \section{Hilos}
+Los hilos surgen como una alternativa más ``liviana'' a los procesos. Funcionalmente se utilizan para lo mismo que los procesos, en el sentido de que son utilizados para dividir sistemas más complejos en subsistemas (ya sea para aprovechar tiempos muertos, paralelizar problemas, dividir y conquistar, etc.) 
 
+A diferencia de los procesos, los hilos comparten recursos, como son: el espacio de memoria, los archivos abiertos, autenticación, etc. Esto hace que no sea necesario un cambio de contexto tan grande como con los procesos, por esto se dice que el switcheo entre hilos tiene menos overhead que entre procesos. Lo que es propio de cada hilo es el contador de programa, la pila de ejecución, y el estado de la CPU.
+
+Mientras que en el caso de los procesos es el SO quien los gestiona, es este caso son gestionados por la JVM.
+
+Por todo esto, si se tiene una aplicaión que debe implementarse como un conjunto de unidades de ejecición relacionadas, es más eficiente hacerlo con hilos que con procesos.
+
+\subsection{Estados de los hilos}
+\includegraphics[width=\textwidth]{thread_statuses}
